@@ -1,0 +1,145 @@
+name: ML benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "timing (one inner fit per model and representation) or benchmark"
+        default: "benchmark"
+      models:
+        description: "Space-separated models (mean_ridge runs mean and Ridge in one job)"
+        default: "mean_ridge rf xgb gp tabpfn tabicl outlier chemprop"
+      reps:
+        description: "Space-separated tabular representations"
+        default: "dft_descriptors dft_chemberta2 dft_mordred"
+      folds:
+        description: "Space-separated outer folds"
+        default: "0 1 2 3 4"
+      merge:
+        description: "Merge into the existing ml_results/benchmark/ on main instead of replacing it"
+        type: boolean
+        default: false
+      learning_curve_models:
+        description: "Space-separated models that also run the learning curve"
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - id: plan
+        env:
+          MODE: ${{ inputs.mode }}
+          MODELS: ${{ inputs.models }}
+          REPS: ${{ inputs.reps }}
+          FOLDS: ${{ inputs.folds }}
+        run: python3 ml_models/benchmark/plan_matrix.py "$MODE" "$MODELS" "$REPS" "$FOLDS" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: ${{ matrix.model }} / ${{ matrix.rep }} / fold ${{ matrix.fold }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          lfs: true # data/*.csv are Git LFS files
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/cache@v4
+        with:
+          path: .cache/weights
+          key: weights-tabpfn3-24a16a8-tabicl-4dcd344
+      - name: Install
+        run: pip install -r requirements-ml.lock
+      - name: Run
+        env:
+          MODE: ${{ inputs.mode }}
+          MODEL: ${{ matrix.model }}
+          REP: ${{ matrix.rep }}
+          FOLD: ${{ matrix.fold }}
+          LC_MODELS: ${{ inputs.learning_curve_models }}
+          BENCHMARK_WEIGHTS: .cache/weights
+        run: |
+          set -o pipefail
+          # Only this job's output may end up in the artifact.
+          rm -rf results ml_results/benchmark/*/
+          mkdir -p logs
+          if [ "$MODE" = timing ]; then
+            for m in ${MODEL/mean_ridge/mean ridge}; do
+              python -m ml_models.benchmark.timing --model "$m" --rep "$REP" | tee -a logs/timing.jsonl
+            done
+            exit 0
+          fi
+          status=0
+          for m in ${MODEL/mean_ridge/mean ridge}; do
+            LC=(); case " $LC_MODELS " in *" $m "*) LC=(--learning-curve);; esac
+            python -m ml_models.benchmark.run --model "$m" --rep "$REP" --fold "$FOLD" "${LC[@]}" \
+              2>&1 | tee "logs/${m}_${REP}_fold${FOLD}.log" || status=1
+          done
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ml-${{ strategy.job-index }}
+          path: |
+            ml_results/benchmark/
+            logs/
+          if-no-files-found: warn
+          retention-days: 14
+
+  collect:
+    needs: run
+    if: ${{ !cancelled() && inputs.mode == 'benchmark' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Base the results commit on the latest main (see the BO rerun workflow for why).
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ml-*
+          path: new
+          merge-multiple: true
+      - name: Commit results to a new branch
+        env:
+          MERGE: ${{ inputs.merge }}
+          BRANCH: experiment-results/ml-${{ github.run_id }}
+        run: |
+          pip install -q pandas numpy scipy scikit-learn
+          if [ "$MERGE" != true ]; then
+            git rm -rq --ignore-unmatch ml_results/benchmark
+            mkdir -p ml_results/benchmark
+            cp -r new/ml_results/benchmark/. ml_results/benchmark/
+          else
+            python -c "from ml_models.benchmark.summarize import merge; merge('new/ml_results/benchmark', 'ml_results/benchmark')"
+          fi
+          python -m ml_models.benchmark.summarize
+          git switch -c "$BRANCH"
+          git add ml_results/benchmark
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "ML benchmark results (workflow run ${GITHUB_RUN_ID})"
+          git push -q origin "$BRANCH"
+          echo "Results: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1" >> "$GITHUB_STEP_SUMMARY"

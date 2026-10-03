@@ -132,11 +132,9 @@ dmypy.json
 
 # Project-specific
 models/
+!ml_models/benchmark/models/
 *.pkl
 *.joblib
-
-# ML models directory - exclude from repository
-ml_models/
 
 # Large data files - keep in repository for cluster experiments
 # data/*.csv files are now included
@@ -184,3 +182,8 @@ xtbopt.xyz
 xtbopt.log
 xtbhess.xyz
 xtbscan.log
+
+# Model checkpoints from the ML benchmark
+*.ckpt
+lightning_logs/
+chemprop_runs/

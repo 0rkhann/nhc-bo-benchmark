@@ -1,0 +1,11 @@
+{
+  "reduced": {
+    "tabpfn/dft_mordred": {
+      "params": {"n_estimators": 8, "softmax_temperature": 0.9},
+      "reason": "Full grid exceeds the 340-minute CPU job (one inner fit 923 s; grid plus refit about 5.4 h): default configuration only, no inner tuning."
+    }
+  },
+  "not_run": {
+    "tabicl/dft_mordred": "Out of memory on the 16 GB runner at 1,197 columns, even with batch_size=1 and disk offload."
+  }
+}

@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import torch
 import gpytorch
-from botorch.fit import fit_gpytorch_mll
 from botorch.acquisition import (
     qLogExpectedImprovement,
     LogExpectedImprovement,
@@ -29,10 +28,24 @@ import psutil
 
 # Fix relative imports to absolute imports
 from src.acquisition import make_acquisition
-from src.data_io import append_to_cache, load_descriptors, load_or_init_cache
+from src.data_io import append_to_cache, load_descriptors, load_or_init_cache, pool_min, prune_columns
 from src.feature_selection.base import FeatureSelector
 from src.gp_model import build_gp, fit_gp, check_gp_stability
 from src.utils import logger, seed_everything
+
+POOL_CHUNK = 256
+
+
+def score_pool(acq, pool_x: torch.Tensor, chunk: int = POOL_CHUNK) -> np.ndarray:
+    """Evaluate a q=1 acquisition over the pool in chunks without autograd.
+
+    A full-pool batch makes the posterior build an [N, n_train, d] tensor, so
+    memory grows with pool size and training-set size; chunking bounds it.
+    """
+    x = pool_x.unsqueeze(1) if pool_x.dim() == 2 else pool_x
+    with torch.no_grad():
+        vals = [acq(x[i : i + chunk]).detach().cpu() for i in range(0, x.shape[0], chunk)]
+    return torch.cat(vals).squeeze(-1).numpy()
 
 # ──────────────────────────────────────────────────────────────────────────
 # metrics
@@ -84,6 +97,17 @@ class BOPipeline:
         smiles_all = df["SMILES"].tolist()
         X_full_df = df.drop(columns="SMILES")
 
+        # optional unsupervised column pruning on the whole X table (no targets)
+        prune_threshold = self.cfg.get("data", {}).get("prune_correlated")
+        kept_columns = None
+        if prune_threshold is not None:
+            kept_columns = prune_columns(X_full_df, prune_threshold)
+            self.logger.info(
+                f"pruned {X_full_df.shape[1]} -> {len(kept_columns)} columns "
+                f"(threshold {prune_threshold})"
+            )
+            X_full_df = X_full_df[kept_columns]
+
         # 2) carve off test set
         X_tmp, X_test_df, smi_tmp, smi_test = train_test_split(
             X_full_df,
@@ -122,22 +146,36 @@ class BOPipeline:
                 cache[smi] = y_val
             train_y_raw.append(float(y_val))
 
-        # helpers to rescale X and normalise y
-        def rescale_x(train_df, pool_df, test_df):
-            s = MinMaxScaler()
+        # helpers to scale X and normalise y
+        # Pool-based BO knows every X up front (no target information is used), so the
+        # MinMax scaler is fitted once on train + pool + test, i.e. on the whole table.
+        x_scaler = MinMaxScaler().fit(X_full_df.to_numpy(dtype=float))
 
-            # Handle both pandas DataFrames and numpy arrays
-            def get_values(data):
-                if hasattr(data, "values"):
-                    return data.values  # pandas DataFrame
-                else:
-                    return data  # numpy array
-
-            return (
-                torch.tensor(s.fit_transform(get_values(train_df)), dtype=torch.double),
-                torch.tensor(s.transform(get_values(pool_df)), dtype=torch.double),
-                torch.tensor(s.transform(get_values(test_df)), dtype=torch.double),
+        def to_unit(*arrays):
+            """MinMax-fit on all given arrays together -> torch tensors in [0, 1]."""
+            s_ = MinMaxScaler().fit(np.vstack(arrays))
+            return tuple(
+                torch.tensor(s_.transform(a), dtype=torch.double) for a in arrays
             )
+
+        def featurize(initial: bool):
+            """Scaled raw X -> (optional) selector fitted on the current training set
+            -> GP inputs. prepare() and update() always receive the same
+            representation (scaled X) and both refit on the current train X, y."""
+            arrays = [
+                x_scaler.transform(d.to_numpy(dtype=float))
+                for d in (train_raw_df, pool_raw_df, test_raw_df)
+            ]
+            if selector is None:
+                return tuple(torch.tensor(a, dtype=torch.double) for a in arrays)
+            fit = selector.prepare if initial else selector.update
+            out = fit(arrays[0], np.asarray(train_y_raw, dtype=float), arrays[1], arrays[2])
+            self._last_transformed_data = dict(
+                zip(("train", "pool", "test"), (t.numpy() for t in out))
+            )
+            # selector outputs (PCA/PLS scores) have arbitrary range; bring them to
+            # the unit scale the GP priors assume
+            return to_unit(*(t.numpy() for t in out))
 
         def normalise_y(y_list: List[float]):
             arr = np.asarray(y_list, dtype=float)
@@ -158,34 +196,18 @@ class BOPipeline:
                 sig,
             )
 
-        # 6) initial scaling / normalization
-        train_x, pool_x, test_x = rescale_x(train_raw_df, pool_raw_df, test_raw_df)
+        # optional feature-selector
+        selector = self.selector_factory()
+
+        # 6) initial scaling / feature selection / normalization
+        train_x, pool_x, test_x = featurize(initial=True)
         train_y, y_mu, y_sig = normalise_y(train_y_raw)
 
         print(f"Size of initial training set: {train_x.shape}")
         print(f"Size of pool set: {pool_x.shape}")
         print(f"Size of test set: {test_x.shape}")
 
-        # optional feature‑selector
-        selector = self.selector_factory()
-
         if selector is not None:
-            # convert to numpy for selector APIs
-            Xtr = train_x.numpy()
-            Xp = pool_x.numpy()
-            Xt = test_x.numpy()
-            y_raw = train_y_raw
-
-            # initial fit/transform
-            train_x, pool_x, test_x = selector.prepare(Xtr, y_raw, Xp, Xt)
-
-            # Store initial transformed data for BO loop
-            self._last_transformed_data = {
-                "train": train_x.numpy(),
-                "pool": pool_x.numpy(),
-                "test": test_x.numpy(),
-            }
-
             try:
                 support = getattr(selector, "get_support", lambda: None)()
                 if support is not None:
@@ -238,15 +260,11 @@ class BOPipeline:
         )
 
         # track best values
-        best_bo = np.inf
+        # incumbent starts at the best of the initial design (as in random search)
+        best_bo = min(train_y_raw)
 
-        # Store the original pool for calculating the true global minimum
-        original_smi_pool = smi_pool.copy()
-        best_pool_min = (
-            float(min(cache[s] for s in original_smi_pool if s in cache))
-            if any(s in cache for s in original_smi_pool)
-            else np.inf
-        )
+        # lowest energy in the initial candidate pool; fixed for the whole run
+        best_pool_min = pool_min(smi_pool, cache)
 
         records = []
 
@@ -314,8 +332,7 @@ class BOPipeline:
 
             else:
                 # Single point acquisition
-                acq_in = pool_x.unsqueeze(1) if pool_x.dim() == 2 else pool_x
-                acq_vals = acq(acq_in).detach().cpu().squeeze(-1).numpy()
+                acq_vals = score_pool(acq, pool_x)
                 indices_next = [int(np.argmax(acq_vals))]
 
             # b) query next point(s)
@@ -349,42 +366,8 @@ class BOPipeline:
                     idx - 1 if idx > idx_next else idx for idx in indices_next
                 ]
 
-            # d) handle feature selection and scaling
-            if selector is not None:
-                # For feature selection methods, we need to:
-                # 1. Get the raw data (including new samples)
-                # 2. Apply feature selection transformation
-                # 3. Then scale the transformed data
-
-                # Convert raw dataframes to numpy arrays for feature selection
-                train_raw_np = train_raw_df.values
-                pool_raw_np = pool_raw_df.values
-                test_raw_np = test_raw_df.values
-
-                # Apply feature selection transformation
-                train_x, pool_x, test_x = selector.update(
-                    train_raw_np,
-                    np.asarray(train_y_raw, dtype=float),
-                    pool_raw_np,
-                    test_raw_np,
-                )
-
-                # Store transformed data for next iteration
-                self._last_transformed_data = {
-                    "train": train_x.numpy(),
-                    "pool": pool_x.numpy(),
-                    "test": test_x.numpy(),
-                }
-
-                # Now scale the transformed data
-                train_x, pool_x, test_x = rescale_x(
-                    train_x.numpy(), pool_x.numpy(), test_x.numpy()
-                )
-            else:
-                # No feature selection: scale raw data directly
-                train_x, pool_x, test_x = rescale_x(
-                    train_raw_df, pool_raw_df, test_raw_df
-                )
+            # d) re-scale, refit the selector on the current training set
+            train_x, pool_x, test_x = featurize(initial=False)
 
             train_y, y_mu, y_sig = normalise_y(train_y_raw)
 
@@ -501,4 +484,6 @@ class BOPipeline:
         out_dir.mkdir(parents=True, exist_ok=True)
 
         pd.DataFrame(records).to_csv(out_dir / "bo_iteration_history.csv", index=False)
+        if kept_columns is not None:
+            (out_dir / "pruned_columns.txt").write_text("\n".join(kept_columns) + "\n")
         self.logger.info(f"Finished BO ✅  (results in {out_dir})")

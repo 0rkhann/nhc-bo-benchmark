@@ -3,7 +3,7 @@
 # Part 1: Bayesian Optimization experiments
 # Part 2: Random Search baseline experiments
 #
-# All experiments use DFT target energies (dft_G.json)
+# All experiments use the xTB target energies in dft_G.json (named after the DFT descriptor set)
 # Datasets: dft_descriptors, dft_chemberta2, dft_mordred (3 DFT datasets)
 # Methods: fabo, pls, pca, opls (4 methods)
 # Kernel: Matern

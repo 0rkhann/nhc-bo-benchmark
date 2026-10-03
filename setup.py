@@ -7,14 +7,13 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="bo-project",
+    name="nhc-bo-benchmark",
     version="0.1.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Orkhan Abdullayev",
     description="Bayesian Optimization for Molecular Property Optimization",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/bo_project",
+    url="https://github.com/0rkhann/nhc-bo-benchmark",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -29,7 +28,7 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     install_requires=[req.split(">=")[0] for req in requirements if not req.startswith("#")],
     extras_require={
         "dev": [
@@ -38,6 +37,7 @@ setup(
             "flake8>=4.0.0",
             "mypy>=0.950",
         ],
+        "ml": [l.strip() for l in open("requirements-ml.txt") if "==" in l],
         "optional": [
             "xgboost>=1.6.0",
             "pyopls>=1.0.0",

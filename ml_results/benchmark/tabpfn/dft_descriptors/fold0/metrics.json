@@ -1,0 +1,81 @@
+{
+ "model": "tabpfn",
+ "rep": "dft_descriptors",
+ "fold": 0,
+ "status": "ok",
+ "error": null,
+ "versions": {
+  "numpy": "2.4.6",
+  "scikit-learn": "1.9.1",
+  "xgboost": "3.2.0",
+  "torch": "2.14.1+cpu",
+  "botorch": "0.18.1",
+  "gpytorch": "1.15.2",
+  "tabpfn": "9.0.0",
+  "tabicl": "2.2.0",
+  "chemprop": "2.3.1",
+  "optuna": "5.0.0"
+ },
+ "git_sha": "3c0fe0b8792f996a87cb9e4a5337b06c80eb8cef",
+ "data_hashes": {
+  "dft_G.json": "736a4c1891ea35c27993ae2b62c2207c728ab3512a29916b38a1583bac57c106",
+  "dft_descriptors.csv": "73cdea8fde890f610a34514af1200c4798e782f5ad07294fda99ef68e6a3c1cb",
+  "dft_chemberta2.csv": "12c5f330c17e36deef2a6f70fe9ec954d0230c57c33ee17bbc68e79e56e1b4bf",
+  "dft_mordred.csv": "1fd98bfa60779cff14a7c7c67d8b6a2736ae723e6ebde28b2746bf2e5bb8f5c9"
+ },
+ "run_id": "37045197164",
+ "checkpoint": "Prior-Labs/tabpfn_3/tabpfn-v3-regressor-v3_default.ckpt@24a16a89d245878b846555110985634aa2e656d7",
+ "n_trials_done": 4,
+ "metrics": {
+  "spearman": 0.5627427764540421,
+  "top1_recall": 0.5714285714285714,
+  "r2": 0.32396030381506935,
+  "rmse": 3.9631318809592777,
+  "mae": 2.91751376063493,
+  "tail_rmse": 5.942669734788124
+ },
+ "learning_curve": [
+  {
+   "fraction": 0.1,
+   "n_train": 548,
+   "spearman": 0.46283427875946426,
+   "top1_recall": 0.5714285714285714,
+   "r2": 0.2245201382226265,
+   "rmse": 4.244608972113029,
+   "mae": 3.1935521658314063,
+   "tail_rmse": 6.681249996198838
+  },
+  {
+   "fraction": 0.25,
+   "n_train": 1370,
+   "spearman": 0.49205340298373806,
+   "top1_recall": 0.5714285714285714,
+   "r2": 0.24022023299061235,
+   "rmse": 4.201421830159936,
+   "mae": 3.1414958736191356,
+   "tail_rmse": 6.553595566907408
+  },
+  {
+   "fraction": 0.5,
+   "n_train": 2740,
+   "spearman": 0.5231848864468363,
+   "top1_recall": 0.5714285714285714,
+   "r2": 0.2886215120341238,
+   "rmse": 4.065395383141972,
+   "mae": 3.0146102470464773,
+   "tail_rmse": 6.2345767659804725
+  },
+  {
+   "fraction": 1.0,
+   "n_train": 5480,
+   "spearman": 0.5625289993888141,
+   "top1_recall": 0.5714285714285714,
+   "r2": 0.3239641621180046,
+   "rmse": 3.963120571723095,
+   "mae": 2.9180247418457923,
+   "tail_rmse": 5.937987649052416
+  }
+ ],
+ "wall_s": 3387.7,
+ "peak_rss_mb": 2119.5
+}

@@ -78,8 +78,13 @@ class PLSFeatureSelector(FeatureSelector):
         if best_model is None:
             raise ValueError("No valid PLS model could be fitted.")
 
-        # Enforce minimum components
-        best_n = max(self.min_components, min(best_n, n_samples - 1, n_feats))
+        # Enforce minimum components: refit if CV picked fewer, so that the model
+        # we keep and the number we report are the same thing.
+        best_n = best_model.n_components
+        min_n = min(self.min_components, n_samples - 1, n_feats)
+        if best_n < min_n:
+            best_n = min_n
+            best_model = PLSRegression(n_components=best_n)
 
         self.model = best_model.fit(X, y)
         self.n_components = best_n
@@ -120,32 +125,3 @@ class PLSFeatureSelector(FeatureSelector):
                 "PLSFeatureSelector: fit must be called before get_support."
             )
         return self.n_components
-
-    def update(
-        self,
-        train_X: "np.ndarray",
-        train_y: "np.ndarray",
-        pool_X: "np.ndarray",
-        test_X: "np.ndarray",
-    ):
-        """
-        Update for BO loop: apply PLS transformation to new data.
-        """
-        if self.model is None:
-            raise RuntimeError("PLS must be fitted before update")
-
-        # Transform the new data using the already-fitted PLS model
-        train_X_transformed = self.transform(train_X)
-        pool_X_transformed = self.transform(pool_X)
-        test_X_transformed = self.transform(test_X)
-
-        if self.logger:
-            self.logger.info(
-                f"PLS update: transformed new data. Shapes: train={train_X_transformed.shape}, pool={pool_X_transformed.shape}, test={test_X_transformed.shape}"
-            )
-
-        return (
-            torch.tensor(train_X_transformed, dtype=torch.double),
-            torch.tensor(pool_X_transformed, dtype=torch.double),
-            torch.tensor(test_X_transformed, dtype=torch.double),
-        )

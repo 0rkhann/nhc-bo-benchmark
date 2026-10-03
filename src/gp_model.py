@@ -91,7 +91,8 @@ def fit_gp(
     """
     Fit GP hyperparameters by maximizing marginal log-likelihood with multi-restart optimization.
 
-    Uses multiple random restarts with adaptive learning rate scheduling to find better optima.
+    Uses multiple random restarts (perturbations of the initial hyperparameters) with
+    adaptive learning rate scheduling to find better optima.
     Monitors convergence and tracks optimization progress.
 
     Args:
@@ -123,28 +124,17 @@ def fit_gp(
     best_restart_idx = 0
     total_iterations = 0
 
+    initial_state = {k: v.clone() for k, v in model.state_dict().items()}
+
     for restart in range(n_restarts):
-        # Random restart for attempts after first
+        # Random restarts perturb the *initial* hyperparameters (restart 0 is unperturbed);
+        # starting from the previous restart's fitted values would not be a restart.
         if restart > 0:
-            # Perturb hyperparameters for restart
+            model.load_state_dict(initial_state)
             with torch.no_grad():
-                # Perturb length-scales
-                for param in model.covar_module.base_kernel.parameters():
-                    if param.requires_grad:
-                        perturbation = 0.5 + torch.rand_like(param)
-                        param.data = param.data * perturbation
-
-                # Perturb outputscale if present
-                if hasattr(model.covar_module, "raw_outputscale"):
-                    param = model.covar_module.raw_outputscale
-                    perturbation = 0.5 + torch.rand_like(param)
-                    param.data = param.data * perturbation
-
-                # Perturb noise
-                if hasattr(model.likelihood, "raw_noise"):
-                    param = model.likelihood.raw_noise
-                    perturbation = 0.8 + 0.4 * torch.rand_like(param)
-                    param.data = param.data * perturbation
+                for name, param in model.named_parameters():
+                    if "raw_" in name and param.requires_grad:
+                        param.add_(0.5 * torch.randn_like(param))
 
         # Optimizer with LR scheduler
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)

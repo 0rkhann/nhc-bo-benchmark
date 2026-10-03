@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="260" viewBox="0 0 960 260" role="img" aria-label="Bayesian optimization for N-heterocyclic carbene design: running-best curves descending to the pool optimum">
+  <style>
+    .bg{fill:#f6f8fa;stroke:#d0d7de}
+    .title{fill:#1f2328;font:700 34px 'Segoe UI',Helvetica,Arial,sans-serif}
+    .tag{fill:#57606a;font:400 17px 'Segoe UI',Helvetica,Arial,sans-serif}
+    .kicker{fill:#0969da;font:600 13px 'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:1.5px}
+    .opt{stroke:#6e7781;stroke-width:1.2;stroke-dasharray:2 5;fill:none}
+    .c{fill:none;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+    .fabo{stroke:#E69F00}.pls{stroke:#009E73}.opls{stroke:#D55E00}.pca{stroke:#56B4E9}
+    .rnd{stroke:#9AA0A6;stroke-dasharray:7 5}
+    .out{stroke:#0072B2;stroke-dasharray:10 4 2 4}
+    .dot{fill:#D55E00}
+    @media (prefers-color-scheme: dark){
+      .bg{fill:#0d1117;stroke:#30363d}
+      .title{fill:#f0f6fc}
+      .tag{fill:#9198a1}
+      .kicker{fill:#58a6ff}
+      .opt{stroke:#8b949e}
+    }
+  </style>
+  <rect class="bg" x="0.5" y="0.5" width="959" height="259" rx="14"/>
+  <text class="kicker" x="48" y="70">BAYESIAN OPTIMIZATION  |  MOLECULAR DESIGN</text>
+  <text class="title" x="48" y="122">Bayesian Optimization for</text>
+  <text class="title" x="48" y="164">Molecular Property Search</text>
+  <text class="tag" x="48" y="206">Finding low binding free energies in NHC chemical space</text>
+
+  <!-- running-best curves stepping down to the pool optimum (dashed) -->
+  <line class="opt" x1="650" y1="205" x2="916" y2="205"/>
+  <path class="c rnd" d="M650,80 H748 V96 H830 V112 H916"/>
+  <path class="c out" d="M650,80 H823 V205"/>
+  <path class="c pca" d="M650,80 H680 V118 H718 V150 H759 V205"/>
+  <path class="c fabo" d="M650,80 H684 V125 H729 V158 H767 V178 H808 V205"/>
+  <path class="c pls" d="M650,80 H676 V112 H704 V148 H740 V205"/>
+  <path class="c opls" d="M650,80 H665 V128 H689 V168 H714 V205"/>
+  <circle class="dot" cx="714" cy="205" r="5"/>
+</svg>

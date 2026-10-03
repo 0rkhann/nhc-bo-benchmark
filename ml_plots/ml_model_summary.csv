@@ -1,7 +1,0 @@
-Dataset,Model,Test_RMSE,Test_R²
-Mordred,Random Forest,4.2,0.232
-Mordred,XGBoost,4.2,0.227
-ChemBERTa2,Random Forest,4.4,0.156
-ChemBERTa2,XGBoost,4.5,0.132
-DFT,Random Forest,4.1,0.269
-DFT,XGBoost,4.1,0.262

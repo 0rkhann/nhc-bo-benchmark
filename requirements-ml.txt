@@ -1,0 +1,6 @@
+-r requirements.txt
+chemprop==2.3.1
+tabpfn==9.0.0
+tabicl==2.2.0
+optuna==5.0.0
+huggingface_hub

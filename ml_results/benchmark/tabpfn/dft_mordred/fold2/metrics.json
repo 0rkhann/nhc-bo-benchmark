@@ -1,0 +1,82 @@
+{
+ "model": "tabpfn",
+ "rep": "dft_mordred",
+ "fold": 2,
+ "status": "ok",
+ "error": null,
+ "versions": {
+  "numpy": "2.4.6",
+  "scikit-learn": "1.9.1",
+  "xgboost": "3.2.0",
+  "torch": "2.14.1+cpu",
+  "botorch": "0.18.1",
+  "gpytorch": "1.15.2",
+  "tabpfn": "9.0.0",
+  "tabicl": "2.2.0",
+  "chemprop": "2.3.1",
+  "optuna": "5.0.0"
+ },
+ "git_sha": "3c0fe0b8792f996a87cb9e4a5337b06c80eb8cef",
+ "data_hashes": {
+  "dft_G.json": "736a4c1891ea35c27993ae2b62c2207c728ab3512a29916b38a1583bac57c106",
+  "dft_descriptors.csv": "73cdea8fde890f610a34514af1200c4798e782f5ad07294fda99ef68e6a3c1cb",
+  "dft_chemberta2.csv": "12c5f330c17e36deef2a6f70fe9ec954d0230c57c33ee17bbc68e79e56e1b4bf",
+  "dft_mordred.csv": "1fd98bfa60779cff14a7c7c67d8b6a2736ae723e6ebde28b2746bf2e5bb8f5c9"
+ },
+ "run_id": "37045197164",
+ "checkpoint": "Prior-Labs/tabpfn_3/tabpfn-v3-regressor-v3_default.ckpt@24a16a89d245878b846555110985634aa2e656d7",
+ "n_trials_done": 0,
+ "reduced": "Full grid exceeds the 340-minute CPU job (one inner fit 923 s; grid plus refit about 5.4 h): default configuration only, no inner tuning.",
+ "metrics": {
+  "spearman": 0.6044340442383654,
+  "top1_recall": 0.21428571428571427,
+  "r2": 0.3221064743446218,
+  "rmse": 3.8269134666845925,
+  "mae": 2.7856708515548707,
+  "tail_rmse": 6.656157551728421
+ },
+ "learning_curve": [
+  {
+   "fraction": 0.1,
+   "n_train": 548,
+   "spearman": 0.5245140336723425,
+   "top1_recall": 0.5,
+   "r2": 0.24044630633238906,
+   "rmse": 4.050859115173585,
+   "mae": 3.055330998734801,
+   "tail_rmse": 6.824454726723848
+  },
+  {
+   "fraction": 0.25,
+   "n_train": 1370,
+   "spearman": 0.55838242164137,
+   "top1_recall": 0.2857142857142857,
+   "r2": 0.2723713629943698,
+   "rmse": 3.964813748319642,
+   "mae": 2.9588316519975315,
+   "tail_rmse": 6.7675338373227625
+  },
+  {
+   "fraction": 0.5,
+   "n_train": 2740,
+   "spearman": 0.5904696553028237,
+   "top1_recall": 0.2857142857142857,
+   "r2": 0.30611373917815865,
+   "rmse": 3.871792224341898,
+   "mae": 2.8520601659306997,
+   "tail_rmse": 6.735770178342123
+  },
+  {
+   "fraction": 1.0,
+   "n_train": 5480,
+   "spearman": 0.6043912262902146,
+   "top1_recall": 0.21428571428571427,
+   "r2": 0.3220963884390343,
+   "rmse": 3.8269419355686347,
+   "mae": 2.7856801841630032,
+   "tail_rmse": 6.656229923730667
+  }
+ ],
+ "wall_s": 3736.6,
+ "peak_rss_mb": 8517.9
+}

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as below."
+title: "Bayesian optimisation benchmark for N-heterocyclic carbene design"
+abstract: >-
+  Pool-based Bayesian optimisation with feature selection (FABO, PCA, PLS, OPLS) against a vanilla GP and
+  model-free controls on three molecular representations of 6,850 N-heterocyclic carbenes, with xTB binding
+  free energies as the target, plus a tuned surrogate benchmark including Chemprop and tabular foundation models.
+authors:
+  - family-names: Abdullayev
+    given-names: Orkhan
+    affiliation: "Pollice Research Group, Stratingh Institute for Chemistry, University of Groningen"
+repository-code: "https://github.com/0rkhann/nhc-bo-benchmark"
+license: MIT
+version: 1.0.0
+keywords:
+  - bayesian-optimization
+  - molecular-design
+  - cheminformatics
+  - gaussian-processes
+  - benchmark

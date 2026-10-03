@@ -1,87 +1,46 @@
 """
-Wraps an external simulator (Morpheus, xTB, etc.) as a unified API,
-with proper progress logging and unit conversion.
-"""
+Energy backend for molecules that are not in the energy cache.
 
-# Force xTB parameter path so Morpheus doesn't default to /root
+The reported runs never call it: every molecule is in data/dft_G.json. The in-house workflow that
+produced those energies is not part of this repository. To compute new molecules, point
+BO_ENERGY_BACKEND at a function that takes a SMILES string and returns its energy in kJ/mol:
+
+    export BO_ENERGY_BACKEND="my_package.energies:binding_free_energy"
+"""
+import importlib
+import logging
 import os
 
-os.environ["XTBPATH"] = os.environ.get("XTBPATH", "/usr/local/share/xtb")
+BACKEND_ENV = "BO_ENERGY_BACKEND"
 
-import logging
 
-# Optional dependency - graceful handling
-try:
-    from morpheus.molecule import Smiles
-    from morpheus.reaction import ReactionTemplate, Reaction
-    from morpheus.simulation import Simulation, SimulationOptions
-    from morpheus.simulation.options import (
-        ConformerSearchMethod,
-        ConformerSearchOptions,
-        GFNLevel,
-    )
-    from morpheus.utils.units import EnergyUnit, convert
-
-    HAS_MORPHEUS = True
-except ImportError:
-    HAS_MORPHEUS = False
+def _load_backend(spec: str):
+    module_name, sep, attr = spec.partition(":")
+    if not sep or not module_name or not attr:
+        raise ValueError(f"{BACKEND_ENV} must look like 'module:function', got {spec!r}")
+    fn = getattr(importlib.import_module(module_name), attr)
+    if not callable(fn):
+        raise TypeError(f"{spec!r} is not callable")
+    return fn
 
 
 class EnergySimulator:
     def __init__(self, options=None):
         self.options = options
         self.logger = logging.getLogger(__name__)
-        # log XTBPATH for confirmation
-        xtbpath = os.environ.get("XTBPATH")
-        self.logger.info(f"Set XTBPATH to '{xtbpath}'")
-
-        if not HAS_MORPHEUS:
-            self.logger.warning(
-                "Morpheus not available. Simulator will only work with pre-cached energy values. "
-                "Ensure all SMILES are present in the energy cache file."
-            )
+        spec = os.environ.get(BACKEND_ENV)
+        self._backend = _load_backend(spec) if spec else None
+        if self._backend is None:
+            self.logger.info(f"No {BACKEND_ENV} set: energies come from the cache only.")
 
     def compute(self, smiles: str, index: int = None, total: int = None) -> float:
-        if not HAS_MORPHEUS:
-            # Fallback mode - only works with cached values
-            if index is not None and total is not None:
-                self.logger.error(
-                    f"Cannot simulate {index}/{total}: {smiles} - morpheus not available"
-                )
-            else:
-                self.logger.error(f"Cannot simulate: {smiles} - morpheus not available")
+        progress = f"{index}/{total}: " if index is not None and total is not None else ""
+        if self._backend is None:
             raise RuntimeError(
-                "Morpheus not available. This simulator can only be used with pre-computed cache values. "
-                "All SMILES must be present in the energy cache file."
+                f"Cannot compute {progress}{smiles}: it is not in the energy cache and no backend is set. "
+                f"Add it to the cache or set {BACKEND_ENV}='module:function'."
             )
-
-        if index is not None and total is not None:
-            self.logger.info(f"Simulating {index}/{total}: {smiles}")
-        else:
-            self.logger.info(f"Simulating: {smiles}")
-
-        template = ReactionTemplate(
-            r"[#6-;v3;D2:1]~1~[#7+;v4:2]~[$([#6;v4]),$([#7;v3]):3]"
-            r"~[$([#6;v4;X3]),$([#7;v3;X2]):4]~[$([#7;v3]),$([#16;v2]):5]1>>"
-            r"[#6+0;v4;X3:1](C(=O)[O-])-1=[#7+;v4;X3:2]"
-            r"-[$([#6;v4;X3]),$([#7;v3;X2]):3]=[$([#6;v4;X3]),$([#7;v3;X2]):4]"
-            r"-[$([#7;v3]),$([#16;v2]):5]1"
-        )
-        sim_opts = SimulationOptions(
-            gfn_level=GFNLevel.GFN2,
-            xtb_cores=12,
-            conformer_search_options=ConformerSearchOptions(
-                method=ConformerSearchMethod.RDKIT, rdkit_level=200
-            ),
-        )
-        sim = Simulation(sim_opts)
-        substrate = Smiles(smiles)
-        co2_ref = -10.317253938960
-        reaction = Reaction(template)
-        reaction.add_reactants([substrate])
-        reaction.run_reaction()
-        dg = sim.calculate_delta_g(reaction.products[0])
-        dg -= co2_ref
-        kj = float(convert(dg, EnergyUnit.Eh, EnergyUnit.kJMol))
-        self.logger.info(f"Computed energy for {smiles}: {kj:.2f} kJ/mol")
-        return kj
+        self.logger.info(f"Computing {progress}{smiles}")
+        energy = float(self._backend(smiles))
+        self.logger.info(f"Computed energy for {smiles}: {energy:.2f} kJ/mol")
+        return energy

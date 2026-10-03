@@ -1,0 +1,4 @@
+{
+ "n_estimators": 16,
+ "softmax_temperature": 0.9
+}

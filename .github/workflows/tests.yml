@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          lfs: true # real-data checks read data/*.csv
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          # The fast ML tests need the tuner; heavy model packages stay out and their tests skip.
+          pip install optuna==5.0.0 huggingface_hub
+      - name: Test
+        run: python -m pytest -q

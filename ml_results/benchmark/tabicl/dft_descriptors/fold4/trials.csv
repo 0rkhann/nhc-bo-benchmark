@@ -1,0 +1,4 @@
+number,value,datetime_start,datetime_complete,duration,params_n_estimators,system_attrs_grid_id,system_attrs_search_space,state
+0,3.935708287752567,2026-10-02 10:36:40.301892,2026-10-02 10:52:27.989192,0 days 00:15:47.687300,32,0,"{'n_estimators': [8, 16, 32]}",COMPLETE
+1,3.93825793807394,2026-10-02 10:52:27.989286,2026-10-02 11:00:21.129571,0 days 00:07:53.140285,16,1,"{'n_estimators': [8, 16, 32]}",COMPLETE
+2,3.9403532850379244,2026-10-02 11:00:21.129638,2026-10-02 11:04:19.540650,0 days 00:03:58.411012,8,2,"{'n_estimators': [8, 16, 32]}",COMPLETE

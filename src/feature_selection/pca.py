@@ -223,35 +223,6 @@ class PCAFeatureSelector(FeatureSelector):
             torch.tensor(test_X_transformed, dtype=torch.double),
         )
 
-    def update(
-        self,
-        train_X: "np.ndarray",
-        train_y: "np.ndarray",
-        pool_X: "np.ndarray",
-        test_X: "np.ndarray",
-    ):
-        """
-        Update for BO loop: apply PCA transformation to new data.
-        """
-        if self.model is None:
-            raise RuntimeError("PCA must be fitted before update")
-
-        # Transform the new data using the already-fitted PCA model
-        train_X_transformed = self.transform(train_X)
-        pool_X_transformed = self.transform(pool_X)
-        test_X_transformed = self.transform(test_X)
-
-        if self.logger:
-            self.logger.info(
-                f"PCA update: transformed new data. Shapes: train={train_X_transformed.shape}, pool={pool_X_transformed.shape}, test={test_X_transformed.shape}"
-            )
-
-        return (
-            torch.tensor(train_X_transformed, dtype=torch.double),
-            torch.tensor(pool_X_transformed, dtype=torch.double),
-            torch.tensor(test_X_transformed, dtype=torch.double),
-        )
-
     def get_support(self):
         # Return the actual number of components selected
         if self.selected_components is None:

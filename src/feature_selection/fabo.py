@@ -275,35 +275,6 @@ class SpearmanFABOSelector(FeatureSelector):
             torch.tensor(test_X_transformed, dtype=torch.double),
         )
 
-    def update(
-        self,
-        train_X: "np.ndarray",
-        train_y: "np.ndarray",
-        pool_X: "np.ndarray",
-        test_X: "np.ndarray",
-    ):
-        """
-        Update for BO loop: apply FABO transformation to new data.
-        """
-        if self.selected_indices_ is None:
-            raise RuntimeError("FABO must be fitted before update")
-
-        # Transform the new data using the already-fitted FABO model
-        train_X_transformed = self.transform(train_X)
-        pool_X_transformed = self.transform(pool_X)
-        test_X_transformed = self.transform(test_X)
-
-        if self.logger:
-            self.logger.info(
-                f"FABO update: transformed new data. Shapes: train={train_X_transformed.shape}, pool={pool_X_transformed.shape}, test={test_X_transformed.shape}"
-            )
-
-        return (
-            torch.tensor(train_X_transformed, dtype=torch.double),
-            torch.tensor(pool_X_transformed, dtype=torch.double),
-            torch.tensor(test_X_transformed, dtype=torch.double),
-        )
-
     def get_support(self) -> int:
         if self.selected_indices_ is None:
             raise ValueError("Must call fit() before get_support()")
