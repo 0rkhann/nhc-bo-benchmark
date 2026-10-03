@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.2
+
+### Fixed
+- The README showed TabPFN-3's gains over Random Forest as +0.050 on both Mordred and DFT descriptors, so the ceiling rule looked inconsistent. They are now shown at four decimals: +0.0504 and +0.0498.
+
 ## v1.0.1
 
 ### Added
