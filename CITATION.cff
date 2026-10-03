@@ -11,7 +11,7 @@ authors:
     affiliation: "Pollice Research Group, Stratingh Institute for Chemistry, University of Groningen"
 repository-code: "https://github.com/0rkhann/nhc-bo-benchmark"
 license: MIT
-version: 1.0.1
+version: 1.0.2
 keywords:
   - bayesian-optimization
   - molecular-design
