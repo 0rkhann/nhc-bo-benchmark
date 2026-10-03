@@ -47,12 +47,3 @@ This fold hit the 350-minute job limit three times:
 - in run 37111375107, with a 90-minute refit reserve.
 
 The other four folds finished. Under the spec's failure rule, the cell is reported with 4 of 5 folds and left out of the significance tests. Each fold completed only 2–4 Chemprop trials, so a GPU run is the way to finish this cell.
-
-### Expected result for fold 2
-
-[`scripts/project_chemprop_fold2.py`](../../scripts/project_chemprop_fold2.py) projects the missing fold.
-- **Method:** on fold 2, the six complete cells on DFT descriptors and Chemprop on SMILES scored +0.002 to +0.038 R² above their own mean of the other four folds. Adding that offset to Chemprop's four-fold mean gives:
-  - fold 2: R² 0.406 (range 0.385–0.421), top-1% recall 0.58 (0.46–0.71);
-  - 5-fold mean: R² 0.388 (0.384–0.391), top-1% recall 0.60 (0.58–0.63).
-- **What would change it:** the gain over TabPFN-3 stays significant (Holm p < 0.05) down to a measured fold-2 R² of 0.35. At 0.34 the 5-fold mean would still be 0.375, but that test would lose significance. Reaching 0.34 needs a fold-2 offset of −0.04. Among all 18 complete cells, the lowest offset is −0.01.
-- **Status:** the script refuses to run once a measured fold 2 exists.
