@@ -219,8 +219,8 @@ To check whether the low surrogate accuracy is a limit of the data or of the mod
 
 - **The ceiling moved, but only modestly.**
   - Under the rule fixed before the run (ΔR² ≥ 0.05 over tuned Random Forest, Holm p < 0.05), it moved on ChemBERTa-2 and Mordred.
-  - TabPFN-3 gains +0.110 on ChemBERTa-2 (p = 0.002) and +0.050 on Mordred (p = 0.001).
-  - On DFT descriptors TabPFN-3 gains +0.050, which falls just short of the 0.05 threshold. With the projected fold, Chemprop on SMILES plus descriptors clears it there too (+0.12). It also uses the molecular graph, so this is not a like-for-like comparison.
+  - TabPFN-3 gains +0.110 on ChemBERTa-2 (p = 0.002) and +0.0504 on Mordred (p = 0.001).
+  - On DFT descriptors TabPFN-3 gains +0.0498, just below the 0.05 threshold. With the projected fold, Chemprop on SMILES plus descriptors clears it there too (+0.12). It also uses the molecular graph, so this is not a like-for-like comparison.
   - In absolute terms the best models still explain only about a third to two fifths of the variance.
 - **Graph plus physics descriptors is the best combination.**
   - Chemprop on SMILES alone is no better than tuned trees.
