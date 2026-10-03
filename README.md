@@ -194,12 +194,10 @@ To check whether the low surrogate accuracy is a limit of the data or of the mod
 | GP (BO surrogate) | 0.251 ± 0.035 | 0.142 ± 0.006 | 0.109 ± 0.007 |
 | TabPFN-3 | 0.317 ± 0.024 | 0.310 ± 0.027 | 0.325 ± 0.024 (default configuration) |
 | TabICLv2 | 0.311 ± 0.019 | 0.299 ± 0.027 | not run (out of memory) |
+| Chemprop, graph only | 0.280 ± 0.017 (SMILES, no descriptors) | – | – |
+| Chemprop, graph + descriptors | **0.383 ± 0.028**¹ | – | – |
 
-**Chemprop, on the molecular graph:**
-- SMILES only: **0.280 ± 0.017** (5 folds).
-- SMILES plus the 29 DFT descriptors: **0.383 ± 0.028** (4 of 5 folds measured).
-
-On the 4 folds it finished, it is +0.07 R² above TabPFN-3 and +0.12 above Random Forest, both on DFT descriptors, and +0.10 above Chemprop on SMILES alone.
+¹ 4 of 5 folds; fold 2 hit the CPU time limit.
 
 **What it shows:**
 
@@ -210,8 +208,8 @@ On the 4 folds it finished, it is +0.07 R² above TabPFN-3 and +0.12 above Rando
   - In absolute terms the best models still explain only about a third to two fifths of the variance.
 - **Graph plus physics descriptors is the best combination.**
   - Chemprop on SMILES alone is no better than tuned trees.
-  - Adding the 29 DFT descriptors lifts it to R² 0.38, about 0.07 above TabPFN-3.
-  - Its top-1% recall is 0.61, the same as TabPFN-3 on the same folds. The extra accuracy is in the bulk of the distribution, not in the tail that BO needs.
+  - Adding the 29 DFT descriptors lifts it to R² 0.38: +0.07 above TabPFN-3 and +0.12 above Random Forest on the same descriptors, and +0.10 above Chemprop on SMILES alone.
+  - Its top-1% recall is 0.61, the same as TabPFN-3. The extra accuracy is in the bulk of the distribution, not in the tail that BO needs.
 - **More data still helps a little.** TabPFN-3's R² rises from 0.21 to 0.32 (DFT descriptors) as its training set grows from 548 to 5,480 molecules, while its top-1% recall stays flat at about 0.6.
 - **Representation matters for the tail, not the bulk.**
   - The best model's R² hardly changes between representations (TabPFN-3: 0.31–0.33, differences not significant).
