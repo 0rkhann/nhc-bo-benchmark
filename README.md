@@ -24,7 +24,7 @@ Search a benchmark set of 6,850 NHC molecules, a subset of a larger candidate li
 - **The energies are hard to predict.**
   - Tuned trees reach hold-out R² 0.20–0.28.
   - Tabular foundation models raise this to 0.30–0.33.
-  - A graph network on SMILES plus the DFT descriptors is the best predictor: R² 0.383 on the 4 folds that finished, and an expected 0.39 over all 5 (Chemprop; the fifth fold is projected).
+  - A graph network on SMILES plus the DFT descriptors is the best predictor: R² 0.38 (Chemprop, 4 of 5 folds).
 - **For BO, ranking the best molecules matters more than R².**
   - The best tabular model's R² is about 0.32 on every representation.
   - Its top-1% recall is 0.60 on DFT descriptors but only 0.33–0.34 on the other two, which matches where BO succeeds.
@@ -199,33 +199,19 @@ To check whether the low surrogate accuracy is a limit of the data or of the mod
 - SMILES only: **0.280 ± 0.017** (5 folds).
 - SMILES plus the 29 DFT descriptors: **0.383 ± 0.028** (4 of 5 folds measured).
 
-**Expected result for the missing fold.** Fold 2 of SMILES plus descriptors did not finish on CPU ([`BUDGET.md`](ml_models/benchmark/BUDGET.md)). The expected value comes from [`scripts/project_chemprop_fold2.py`](scripts/project_chemprop_fold2.py):
-- **Method:** on fold 2, every complete cell on DFT descriptors and Chemprop on SMILES scored +0.002 to +0.038 R² above its own mean of the other four folds (mean +0.022, 7 cells). That offset is added to Chemprop's four-fold mean.
-- **Results.** These are projections, not measurements; the range comes from the smallest and largest offset:
-
-| Metric | Fold 2, expected (range) | 5-fold mean, expected (range) |
-|---|---|---|
-| R² | 0.406 (0.385–0.421) | **0.388** (0.384–0.391) |
-| Spearman ρ | 0.659 (0.632–0.674) | 0.642 (0.637–0.645) |
-| Top-1% recall | 0.58 (0.46–0.71) | **0.60** (0.58–0.63) |
-
-- **Paired tests with the projected fold** (corrected t-test, Holm over three comparisons). They hold at both ends of the range:
-  - R² beats tuned Random Forest on descriptors by +0.12 (p ≤ 0.003).
-  - R² beats TabPFN-3 on descriptors by +0.07 (p ≤ 0.006).
-  - R² beats Chemprop on SMILES alone by +0.10 (p ≤ 0.004).
-  - Top-1% recall is level with TabPFN-3 (+0.00, p = 0.98) and not significantly above Random Forest (p ≥ 0.58).
+On the 4 folds it finished, it is +0.07 R² above TabPFN-3 and +0.12 above Random Forest, both on DFT descriptors, and +0.10 above Chemprop on SMILES alone.
 
 **What it shows:**
 
 - **The ceiling moved, but only modestly.**
   - Under the rule fixed before the run (ΔR² ≥ 0.05 over tuned Random Forest, Holm p < 0.05), it moved on ChemBERTa-2 and Mordred.
   - TabPFN-3 gains +0.110 on ChemBERTa-2 (p = 0.002) and +0.0504 on Mordred (p = 0.001).
-  - On DFT descriptors TabPFN-3 gains +0.0498, just below the 0.05 threshold. With the projected fold, Chemprop on SMILES plus descriptors clears it there too (+0.12). It also uses the molecular graph, so this is not a like-for-like comparison.
+  - On DFT descriptors TabPFN-3 gains +0.0498, just below the 0.05 threshold. Chemprop on SMILES plus descriptors is +0.12 above Random Forest, but it also uses the molecular graph, so this is not a like-for-like comparison.
   - In absolute terms the best models still explain only about a third to two fifths of the variance.
 - **Graph plus physics descriptors is the best combination.**
   - Chemprop on SMILES alone is no better than tuned trees.
-  - Adding the 29 DFT descriptors lifts it to an expected R² of 0.39, about 0.07 above TabPFN-3.
-  - Its expected top-1% recall is 0.60, the same as TabPFN-3 on descriptors. The extra accuracy is in the bulk of the distribution, not in the tail that BO needs.
+  - Adding the 29 DFT descriptors lifts it to R² 0.38, about 0.07 above TabPFN-3.
+  - Its top-1% recall is 0.61, the same as TabPFN-3 on the same folds. The extra accuracy is in the bulk of the distribution, not in the tail that BO needs.
 - **More data still helps a little.** TabPFN-3's R² rises from 0.21 to 0.32 (DFT descriptors) as its training set grows from 548 to 5,480 molecules, while its top-1% recall stays flat at about 0.6.
 - **Representation matters for the tail, not the bulk.**
   - The best model's R² hardly changes between representations (TabPFN-3: 0.31–0.33, differences not significant).
@@ -256,7 +242,7 @@ TabPFN-3 weights are released under a non-commercial licence; its prediction fil
   - With DFT descriptors, OPLS-guided BO finds the best molecule after a median of 26 evaluations in total (10 initial + 16), 0.4% of the 6,155-molecule pool.
   - With learned or generic representations it rarely finds it within 110.
 - **Hand-built physics descriptors carry the signal that matters.** Combined with the molecular graph they also give the best energy predictor.
-- **Better R² does not mean better BO.** Every model on descriptors finds about 60% of the top-1% molecules. That holds from TabPFN-3 (R² 0.32) to Chemprop (expected R² 0.39). The ranking signal comes from the descriptors and saturates, so the next gain is more likely from better descriptors or less noisy energies than from a bigger model.
+- **Better R² does not mean better BO.** The best models on descriptors find about 60% of the top-1% molecules, from TabPFN-3 (R² 0.32) to Chemprop (R² 0.38). The ranking signal comes from the descriptors and saturates, so the next gain is more likely from better descriptors or less noisy energies than from a bigger model.
 - **Next steps:**
   - Measure the xTB noise with repeated calculations, to know the true accuracy ceiling.
   - Check the collinear descriptor columns at the export step.
@@ -271,11 +257,11 @@ TabPFN-3 weights are released under a non-commercial licence; its prediction fil
   - Even the best tuned model reaches only R² ≈ 0.32–0.38 (see the surrogate benchmark).
   - [`scripts/diagnose_ml_r2.py`](scripts/diagnose_ml_r2.py) rules out a data bug: a shuffled-target control gives R² of −0.05 to −0.07, so features and energies are aligned.
   - The likely ceiling is noise in the xTB energies of these flexible molecules. The data contain no repeated calculations, so it cannot be measured here.
-- **Chemprop was barely tuned.** One Chemprop trial takes over an hour on a CPU runner, so each fold finished only 2–4 of the planned 20 trials. Its R² of 0.38–0.39 is therefore a lower bound for a tuned graph network.
+- **Chemprop was barely tuned.** One Chemprop trial takes over an hour on a CPU runner, so each fold finished only 2–4 of the planned 20 trials. Its R² of 0.38 is therefore a lower bound for a tuned graph network.
 - **Some benchmark cells are reduced or missing.** See [`ml_models/benchmark/BUDGET.md`](ml_models/benchmark/BUDGET.md).
   - TabPFN-3 on Mordred ran its default configuration only.
   - TabICLv2 on Mordred was not run, because it runs out of memory on a 16 GB runner.
-  - Chemprop on SMILES plus DFT descriptors has 4 of 5 measured folds. It is left out of `comparisons.csv`. Its fold 2 and the tests that use it are projections (see the surrogate benchmark).
+  - Chemprop on SMILES plus DFT descriptors has 4 of 5 folds: fold 2 hit the CPU time limit three times. It is left out of the significance tests.
 - **Representations are not paired by molecule order.** `dft_descriptors.csv` lists the molecules in a different row order from the ChemBERTa-2 and Mordred files, so the same seed draws different molecules on descriptors. Random-search histories on ChemBERTa-2 and Mordred are identical (SMILES and energies, 20/20 seeds) because those two files share row order; they differ from the descriptor histories (0/20 seeds). Comparisons across representations are therefore not paired by molecule.
 - **Top 1% is relative to the pool.** The threshold (about −20) is the 1st percentile of each seed's pool, rebuilt in `scripts/analyze_results.py` with the same two `train_test_split` calls as `baselines/random_search.py` and checked against `best_pool_min` in all 420 histories. Iteration counts are censored at 100.
 - **Benchmark subset, not the full library.** The 6,850 molecules are a subset of a larger candidate library, taken for benchmarking; every energy in it is precomputed, so every run can be replayed from the cache. "Optimum" always means the best molecule of this set, and the results show how methods behave on this set; they do not establish the best molecule of the full library.
@@ -359,7 +345,7 @@ pytest                                 # tests
 │   └── pipelines/               # one BO pipeline per method
 ├── ml_models/benchmark/         # surrogate benchmark: data, adapters, tuner, runner, summariser, budget
 ├── plotting/make_figures.py     # all README figures
-├── scripts/                     # analyze_results.py, summarize_results.py, diagnose_ml_r2.py, project_chemprop_fold2.py, cache helpers
+├── scripts/                     # analyze_results.py, summarize_results.py, diagnose_ml_r2.py, cache helpers
 ├── results/                     # BO and control histories (CSV), 420 runs
 ├── ml_results/benchmark/        # per-cell metrics, predictions, trial logs, summary tables
 ├── plots/, ml_plots/            # figures (SVG for the README, PDF for slides)
